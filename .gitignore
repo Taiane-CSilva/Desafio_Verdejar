@@ -1,0 +1,11 @@
+# Arquivos temporários do Python
+__pycache__/
+
+# Dados sensíveis do projeto página 15
+.env 
+
+# Dados brutos 
+brutos/
+
+# Ambiente virtual
+.venv/
