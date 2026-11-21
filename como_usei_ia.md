@@ -1,4 +1,6 @@
-## Como usei a IA — Preparação do projeto
+# Como usei a IA
+
+## 0 - Preparação do projeto
 
 Utilizei o ChatGPT como ferramenta de apoio durante a preparação do ambiente, principalmente para conferir as versões do Python e do PostgreSQL, verificar a conexão entre eles e esclarecer algumas dúvidas sobre Git.
 
@@ -43,3 +45,33 @@ Durante a organização inicial do projeto, precisei revisar alguns conceitos de
 Também organizei as atividades do desafio em um Kanban no Trello, utilizando a documentação como referência. Depois, consultei a IA para conferir se as etapas estavam alinhadas com o que foi solicitado.
 
 **Observação:** O registro de falhas em código sugerido pela IA será complementado durante o desenvolvimento do ETL.
+
+---
+
+## Parte 1 — Extração
+
+### Sugestões aceitas
+
+Durante a extração, voltei à seção 12 do curso da Udemy sobre consumo de APIs REST com Python, principalmente à parte de GET. Consegui escrever o início do código, mas tive dificuldades para desenvolver a função de paginação e o tratamento de erros.
+
+Pedi ajuda ao ChatGPT para entender a lógica e desenvolver o restante do código. Utilizei as sugestões da IA, fiz ajustes e executei o programa para verificar os resultados.
+
+Também utilizei o Codex no VS Code para implementar e executar testes automatizados com pytest. Foram realizados quatro testes, todos aprovados.
+
+### Sugestões rejeitadas
+
+Inicialmente, a IA sugeriu fazer testes manuais e depois apagar os códigos utilizados. Não concordei com essa abordagem, porque considero importante manter evidências que outras pessoas possam executar e conferir.
+
+Pensei em deixar os testes comentados no código, mas a IA apresentou a alternativa de utilizar pytest. Achei mais adequada e decidi seguir com os testes automatizados.
+
+Na leitura do arquivo `produtos.csv`, a IA sugeriu utilizar o módulo `csv`. Preferi utilizar pandas, com `pd.read_csv()`, porque já tinha aprendido esse método no curso e consegui desenvolver essa parte com mais autonomia.
+
+### Falhas e retrabalho
+
+Durante o desenvolvimento, tivemos problemas com a organização dos arquivos. O código de extração foi criado em uma pasta incorreta, dentro de `brutos`, e precisei recuperá-lo e reorganizá-lo na pasta `etl`.
+
+Também tive dificuldades com a indentação e precisei corrigir trechos duplicados. Inicialmente, a IA sugeriu uma função utilizando `while`, mas pedi uma alternativa mais simples e seguimos com `for`, que eu já conhecia.
+
+Na leitura do CSV, corrigi o delimitador e substituí o caminho absoluto do meu computador por um caminho relativo, pensando na execução do projeto por outras pessoas após a publicação no GitHub.
+
+Por fim, questionei a falta de evidências dos testes manuais. Com apoio da IA e do Codex, passei a utilizar testes automatizados e organizei as evidências da extração em um PDF.
