@@ -122,3 +122,45 @@ Apesar de ter dedicado mais tempo à validação manual, considero que essa etap
 Aprendi a diferenciar as regras de transformação da estrutura do banco de dados, entendi a importância de remover duplicidades antes dos cálculos e compreendi melhor como os testes automatizados verificam o comportamento das funções.
 
 A IA foi utilizada como apoio para pesquisa, documentação, implementação, revisão e testes. As decisões sobre o processo de trabalho e a conferência dos resultados foram realizadas por mim, com o objetivo de compreender e validar as entregas antes de avançar para a carga no PostgreSQL.
+
+## Parte 3 — Carga no Banco de Dados
+
+### Sugestões aceitas
+
+Nesta etapa, utilizei o Codex para implementar o arquivo `etl/carga.py`, responsável por carregar os dados tratados nas quatro tabelas do PostgreSQL: produtos, clientes, pedidos e itens_pedido.
+
+Solicitei ajuda ao ChatGPT para elaborar os prompts enviados ao Codex, definindo os requisitos da carga, a ordem das tabelas, o uso de consultas parametrizadas e a necessidade de evitar registros duplicados.
+
+Após a implementação, executei o código e conferi as quantidades carregadas: 12 produtos, 1.000 clientes, 5.000 pedidos e 12.455 itens.
+
+Executei a carga uma segunda vez para verificar a idempotência, confirmando que as quantidades permaneceram iguais.
+
+Também solicitei ao Codex a criação de testes automatizados com pytest. A execução completa apresentou 20 testes aprovados, sendo dois específicos da etapa de carga.
+
+Por fim, utilizei o ChatGPT para organizar as evidências em PDF, incluindo os resultados das duas execuções, dos testes automatizados e das consultas SQL realizadas no PostgreSQL.
+
+### Sugestões rejeitadas ou modificadas
+
+Preferi revisar a implementação antes de executar o código no banco de dados, em vez de permitir que a IA realizasse a carga automaticamente.
+
+Também optei por executar pessoalmente a carga duas vezes no PostgreSQL, para verificar o comportamento com os dados reais, além dos testes automatizados criados pelo Codex.
+
+### Dificuldades e pontos de atenção
+
+Esta foi a etapa que concluí mais rapidamente, o que me gerou preocupação sobre a possibilidade de não ter conferido todos os detalhes necessários.
+
+Uma dificuldade foi configurar a conexão com o PostgreSQL utilizando o arquivo `.env`. O Codex identificou a necessidade das variáveis de conexão, que configurei antes de executar a carga.
+
+Para aumentar minha confiança no resultado, realizei consultas SQL diretamente no banco e confirmei as quantidades das quatro tabelas.
+
+Também verifiquei se existiam pedidos sem clientes correspondentes e diferenças entre o valor dos itens armazenado e o total calculado a partir dos produtos de cada pedido. Ambas as consultas retornaram zero.
+
+### Aprendizados
+
+Compreendi melhor a diferença entre transformar os dados em Python e armazená-los efetivamente no PostgreSQL.
+
+Também entendi o conceito de idempotência: executar novamente a carga com os mesmos dados não deve criar registros duplicados.
+
+Aprendi que conferir apenas a quantidade de registros não é suficiente. Também é importante verificar a integridade dos relacionamentos e a consistência dos valores armazenados.
+
+A IA foi utilizada principalmente para implementar o código e os testes, enquanto participei da definição dos requisitos, da execução, da conferência dos resultados e da documentação das evidências.
