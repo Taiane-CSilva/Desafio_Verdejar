@@ -75,3 +75,50 @@ Também tive dificuldades com a indentação e precisei corrigir trechos duplica
 Na leitura do CSV, corrigi o delimitador e substituí o caminho absoluto do meu computador por um caminho relativo, pensando na execução do projeto por outras pessoas após a publicação no GitHub.
 
 Por fim, questionei a falta de evidências dos testes manuais. Com apoio da IA e do Codex, passei a utilizar testes automatizados e organizei as evidências da extração em um PDF.
+
+
+## Parte 2 — Transformação e Contrato de Dados
+
+### Sugestões aceitas
+
+Inicialmente, tive dificuldade para começar o Contrato de Dados, pois precisei revisar o conceito e entender sua finalidade. Para isso, pesquisei no Google e consultei um artigo da IBM sobre contratos de dados.
+
+Depois de compreender melhor o assunto, solicitei ao ChatGPT que estruturasse um contrato para o projeto Verdejar, considerando o que eu havia pesquisado na IBM e as exigências do desafio.
+
+Revisei o documento campo por campo, utilizando o `schema.sql` para conferir os tipos de dados, a obrigatoriedade e os relacionamentos entre as tabelas. Também conferi individualmente as regras das armadilhas A1 a A6 no enunciado, questionando algumas informações até entender sua origem.
+
+Para implementar as transformações, utilizei o Codex, que me auxiliou na criação das funções Python no arquivo `transformacao.py`. Posteriormente, pedi ajuda ao ChatGPT para revisar o código, identificar as funções relacionadas a cada armadilha e compreender os resultados.
+
+Também utilizei o Codex para criar os testes automatizados com pytest. Ao final, foram aprovados 18 testes, considerando os quatro testes de extração já existentes e os 14 testes de transformação.
+
+### Sugestões rejeitadas ou modificadas
+
+A IA sugeriu implementar as funções de transformação e realizar imediatamente os testes com pytest. Preferi separar essas atividades, pois queria primeiro revisar as funções e executá-las com os dados reais para entender os resultados.
+
+Também considerei uma versão mais extensa e comentada do código sugerida pelo ChatGPT, mas preferi manter a versão mais enxuta do Codex, acrescentando apenas comentários para identificar as armadilhas A1 a A6.
+
+Outra decisão minha foi realizar uma validação independente no Excel. Apesar de a IA já ter apresentado os contadores das transformações, preferi conferir os dados manualmente, utilizando filtros, fórmulas, Power Query e Tabelas Dinâmicas, pois tenho mais familiaridade com essas ferramentas.
+
+### Falhas e retrabalho
+
+A elaboração do Contrato de Dados levou mais tempo do que eu esperava, principalmente porque precisei estudar o conceito antes de conseguir validar o documento.
+
+Durante a revisão, identifiquei informações que precisavam ser esclarecidas, como a diferença entre as regras definidas no `schema.sql` e as transformações exigidas pelas armadilhas. Também questionei a padronização da data de cadastro dos clientes, que não fazia parte da armadilha A3.
+
+Na implementação das funções, os primeiros contadores de datas e valores consideravam todos os pedidos tratados. Solicitei ao Codex que ajustasse a lógica para diferenciar os registros processados daqueles que chegaram com formatos que precisavam de conversão.
+
+A validação no Excel também exigiu retrabalho. Inicialmente, obtive contagens diferentes das apresentadas pelo Python porque estava considerando pedidos duplicados. Depois de identificar a diferença, ajustei os filtros e consegui confirmar os resultados das armadilhas A3, A4 e A5.
+
+Na armadilha A6, precisei compreender melhor a relação entre pedidos e seus itens. Ao expandir os itens no Power Query, percebi que um pedido poderia aparecer em várias linhas. Também foi necessário remover os pedidos duplicados antes de calcular a soma dos itens, para evitar contagens incorretas.
+
+Depois dessas correções, consegui confirmar no Excel os mesmos **238 pedidos divergentes** identificados pelo Python.
+
+Por fim, executei os testes automatizados com pytest e procurei compreender o que estava sendo validado, principalmente a regra de que uma diferença de até R$ 0,01 não caracteriza divergência financeira.
+
+### Aprendizados
+
+Apesar de ter dedicado mais tempo à validação manual, considero que essa etapa foi importante para compreender melhor o funcionamento do ETL.
+
+Aprendi a diferenciar as regras de transformação da estrutura do banco de dados, entendi a importância de remover duplicidades antes dos cálculos e compreendi melhor como os testes automatizados verificam o comportamento das funções.
+
+A IA foi utilizada como apoio para pesquisa, documentação, implementação, revisão e testes. As decisões sobre o processo de trabalho e a conferência dos resultados foram realizadas por mim, com o objetivo de compreender e validar as entregas antes de avançar para a carga no PostgreSQL.
