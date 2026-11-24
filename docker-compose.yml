@@ -1,0 +1,49 @@
+
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: verdejar
+      POSTGRES_USER: verdejar
+      POSTGRES_PASSWORD: verdejar_docker_local
+    volumes:
+      - dados_postgres:/var/lib/postgresql/data
+      - ./insumos/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U verdejar -d verdejar"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build: .
+    command: python -u insumos/api_verdejar.py --dados insumos/dados
+    depends_on:
+      - db
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/clientes?page=1&page_size=1', timeout=3)"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  etl:
+    build: .
+    environment:
+      API_URL: http://api:8000
+      PGHOST: db
+      PGPORT: "5432"
+      PGUSER: verdejar
+      PGPASSWORD: verdejar_docker_local
+    depends_on:
+      db:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+    command: >
+      sh -c "mkdir -p brutos &&
+             python -m etl.extracao_api &&
+             python -m etl.carga &&
+             python -m etl.resumo_saida_etl"
+
+volumes:
+  dados_postgres:

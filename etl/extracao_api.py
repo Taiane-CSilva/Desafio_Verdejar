@@ -1,7 +1,10 @@
+
 import requests
 import json
+import os
 
-URL = 'http://127.0.0.1:8000'
+URL = os.getenv('API_URL', 'http://127.0.0.1:8000')
+
 
 def extrair_dados(rota):
     registros = []
@@ -23,7 +26,10 @@ def extrair_dados(rota):
 
     for pagina in range(1, total_paginas + 1):
         try:
-            resposta = requests.get(URL + rota, params={'page': pagina, 'page_size': 50})
+            resposta = requests.get(
+                URL + rota,
+                params={'page': pagina, 'page_size': 50}
+            )
 
         except requests.exceptions.RequestException:
             print('Erro de conexão na página:', pagina)
@@ -39,25 +45,23 @@ def extrair_dados(rota):
     return registros
 
 
-clientes = extrair_dados('/clientes')
-print('Total de clientes:', len(clientes))
+if __name__ == '__main__':
+    clientes = extrair_dados('/clientes')
+    print('Total de clientes:', len(clientes))
 
-pedidos = extrair_dados('/pedidos')
-print('Total de pedidos:', len(pedidos))
+    pedidos = extrair_dados('/pedidos')
+    print('Total de pedidos:', len(pedidos))
 
-if len(clientes) == 1000:
-    arquivo = open('brutos/clientes.json', 'w', encoding='utf-8')
-    json.dump(clientes, arquivo, indent=4, ensure_ascii=False)
-    arquivo.close()
+    if len(clientes) != 1000 or len(pedidos) != 5100:
+        raise SystemExit(
+            'Extração incompleta: esperados 1000 clientes e 5100 pedidos. '
+            'Carga cancelada.'
+        )
+
+    with open('brutos/clientes.json', 'w', encoding='utf-8') as arquivo:
+        json.dump(clientes, arquivo, indent=4, ensure_ascii=False)
     print('Clientes salvos com sucesso!')
-else:
-    print('Clientes não foram salvos: extração incompleta.')
 
-if len(pedidos) == 5100:
-    arquivo = open('brutos/pedidos.json', 'w', encoding='utf-8')
-    json.dump(pedidos, arquivo, indent=4, ensure_ascii=False)
-    arquivo.close()
+    with open('brutos/pedidos.json', 'w', encoding='utf-8') as arquivo:
+        json.dump(pedidos, arquivo, indent=4, ensure_ascii=False)
     print('Pedidos salvos com sucesso!')
-else:
-    print('Pedidos não foram salvos: extração incompleta.')
-

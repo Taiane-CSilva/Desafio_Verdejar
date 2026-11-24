@@ -1,0 +1,21 @@
+# Ambiente virtual
+.venv/
+
+# Senhas e configurações locais
+.env
+.env.*
+
+# Dados brutos
+brutos/
+
+# Arquivos temporários do Python
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Arquivos do Git
+.git/
+
+# Evidências e documentação visual
+evidencias/
+kanban/

@@ -1,86 +1,112 @@
 # Desafio Final — ETL Verdejar
 
-## 1. Sobre o projeto
+Projeto desenvolvido para o **Bootcamp AIR Fellowship — AI-Driven Data Engineering**, com o objetivo de construir um processo ETL (Extração, Transformação e Carga) utilizando Python e PostgreSQL.
 
-Projeto desenvolvido para o Desafio Final do Bootcamp AIR Fellowship — AI-Driven Data Engineering.
+A Verdejar é uma empresa fictícia de hortifrúti, com dados sintéticos disponibilizados por API e CSV. O projeto realiza a extração, aplica regras de qualidade e disponibiliza os dados tratados para análises de vendas.
 
-O objetivo é construir um processo ETL (Extração, Transformação e Carga) utilizando Python para extrair dados de uma API local e de um arquivo CSV, realizar os tratamentos necessários e armazenar os resultados no PostgreSQL.
+O desenvolvimento foi realizado inicialmente com PostgreSQL local (**Caminho A**) e, posteriormente, ampliado com **Docker Compose**, como atividade opcional.
 
-A Verdejar é uma empresa fictícia de hortifrúti e os dados utilizados são sintéticos. O projeto prepara os dados para análises de vendas por mês, estado e categoria de produto.
+## Resumo dos resultados
 
-## 2. Tecnologias e ambiente
+| Indicador | Resultado |
+|---|---:|
+| Clientes extraídos | 1.000 |
+| Pedidos extraídos | 5.100 |
+| Produtos | 12 |
+| Pedidos únicos após tratamento | 5.000 |
+| Itens de pedido | 12.455 |
+| Pedidos duplicados descartados | 100 |
+| Pedidos divergentes identificados | 238 |
+| Testes automatizados | 21 aprovados |
+| Soma de `valor_itens` | R$ 311.228,75 |
+| Diferença na reconciliação | **R$ 0,00** |
+
+A carga foi executada duas vezes sem duplicações, tanto no ambiente local quanto no Docker.
+
+## Índice
+
+1. [Tecnologias utilizadas](#1-tecnologias-utilizadas)
+2. [Extração e transformação](#2-extração-e-transformação)
+3. [Carga e idempotência](#3-carga-e-idempotência)
+4. [Testes e reconciliação](#4-testes-e-reconciliação)
+5. [Consultas SQL e análises](#5-consultas-sql-e-análises)
+6. [Execução local — Caminho A](#6-execução-local--caminho-a)
+7. [Execução com Docker Compose](#7-execução-com-docker-compose)
+8. [Evidências e documentação](#8-evidências-e-documentação)
+9. [Uso de IA e versionamento](#9-uso-de-ia-e-versionamento)
+
+---
+
+## 1. Tecnologias utilizadas
 
 - **Python 3.13:** desenvolvimento do ETL.
 - **Requests:** consumo da API.
-- **Pandas e módulo CSV:** leitura e processamento do catálogo de produtos.
-- **PostgreSQL:** banco de dados utilizado (Caminho A, sem Docker).
-- **Psycopg:** conexão entre Python e PostgreSQL.
+- **Pandas e CSV:** leitura e processamento de dados.
+- **PostgreSQL:** armazenamento dos dados tratados.
+- **Psycopg:** conexão com o PostgreSQL.
 - **pgAdmin 4:** consultas e validações SQL.
 - **Pytest:** testes automatizados.
+- **Docker e Docker Compose:** execução e orquestração dos serviços.
 - **Git e GitHub:** versionamento.
 - **VS Code:** ambiente de desenvolvimento.
 
-## 3. Extração e transformação
+## 2. Extração e transformação
 
-Os dados foram extraídos das rotas `/clientes` e `/pedidos` da API e do arquivo `produtos.csv`.
+A extração foi implementada em `etl/extracao_api.py` e `etl/extracao_csv.py`, utilizando as rotas `/clientes` e `/pedidos` da API e o arquivo `produtos.csv`.
 
-Os arquivos JSON extraídos foram preservados na pasta `brutos/` para permitir o reprocessamento.
+Os arquivos JSON extraídos são armazenados em `brutos/` para processamento.
 
-| Dados extraídos | Quantidade |
-|---|---:|
-| Clientes | 1.000 |
-| Pedidos brutos | 5.100 |
-| Produtos | 12 |
+As transformações foram implementadas em `etl/transformacao.py`, seguindo as regras A1 a A6 do desafio.
 
-As transformações foram implementadas no arquivo `etl/transformacao.py`, seguindo as regras A1 a A6.
-
-| Regra | Tratamento | Resultado |
+| Regra | Tratamento realizado | Resultado |
 |---|---|---:|
 | A1 | E-mails nulos preservados | 81 |
-| A2 | Estados corrigidos | 151 |
+| A2 | Estados padronizados | 151 |
 | A3 | Datas convertidas | 1.037 |
 | A4 | Valores monetários convertidos | 1.255 |
 | A5 | Pedidos duplicados descartados | 100 |
-| A6 | Pedidos divergentes identificados | 238 |
+| A6 | Divergências financeiras identificadas | 238 |
 
-Após a remoção das duplicidades, foram mantidos **5.000 pedidos únicos**.
+Após o tratamento, foram mantidos **5.000 pedidos únicos**.
 
-O campo `valor_total` original foi preservado. O campo `valor_itens` foi calculado pela soma de `quantidade × preco_unitario` dos itens do pedido.
+O campo `valor_total` original foi preservado, enquanto `valor_itens` foi calculado pela soma de `quantidade × preco_unitario`.
 
-As regras e os tipos de dados estão documentados em `contrato_de_dados.md`.
+As definições dos campos, tipos e regras estão documentadas em `contrato_de_dados.md`.
 
-## 4. Carga no PostgreSQL
+## 3. Carga e idempotência
 
-A carga foi implementada no arquivo `etl/carga.py`, utilizando SQL parametrizado e a seguinte ordem de inserção:
+A carga foi implementada em `etl/carga.py`, utilizando SQL parametrizado e respeitando a seguinte ordem de inserção:
 
 1. `produtos`
 2. `clientes`
 3. `pedidos`
 4. `itens_pedido`
 
-Foi utilizada a estratégia `ON CONFLICT DO NOTHING` para evitar duplicações de registros com as mesmas chaves.
+Para evitar duplicações, foram utilizadas as chaves primárias das tabelas e a estratégia `ON CONFLICT DO NOTHING`.
 
-A carga foi executada duas vezes, mantendo os mesmos resultados:
+### Validação da idempotência
 
-| Tabela | Primeira execução | Segunda execução |
+A carga foi executada duas vezes no mesmo banco, mantendo as quantidades:
+
+| Tabela | 1ª execução | 2ª execução |
 |---|---:|---:|
 | Produtos | 12 | 12 |
 | Clientes | 1.000 | 1.000 |
 | Pedidos | 5.000 | 5.000 |
 | Itens de pedido | 12.455 | 12.455 |
 
-**Resultado:** idempotência confirmada nas duas execuções.
+**Resultado:** idempotência confirmada para os mesmos dados de origem.
 
-Também foram realizadas verificações de integridade no PostgreSQL:
+Também foram realizadas verificações de integridade no PostgreSQL local:
 
-- Pedidos sem cliente correspondente: 0.
-- Pedidos cujo `valor_itens` armazenado não corresponde ao cálculo dos itens: 0.
+- Pedidos sem cliente correspondente: **0**.
+- Pedidos com `valor_itens` armazenado diferente da soma calculada dos itens: **0**.
 
-## 5. Testes e reconciliação
+## 4. Testes e reconciliação
 
 Os testes automatizados estão disponíveis na pasta `tests/`.
 
-| Arquivo | Testes |
+| Arquivo | Quantidade de testes |
 |---|---:|
 | `test_extracao_api.py` | 4 |
 | `test_transformacao.py` | 14 |
@@ -88,15 +114,15 @@ Os testes automatizados estão disponíveis na pasta `tests/`.
 | `test_reconciliacao.py` | 1 |
 | **Total** | **21** |
 
-Comando utilizado:
+Para executar os testes no ambiente local:
 
 ```bash
 python -m pytest tests -v
 ```
 
-**Resultado:** 21 testes aprovados, sem falhas.
+**Resultado obtido:** 21 testes aprovados.
 
-Foi apresentado um aviso de permissão relacionado ao cache do pytest no OneDrive, sem comprometer os resultados.
+Na execução local, ocorreu um aviso de permissão relacionado ao cache do pytest no OneDrive, sem comprometer os resultados.
 
 ### Reconciliação
 
@@ -106,14 +132,15 @@ O teste `tests/test_reconciliacao.py` compara a quantidade de pedidos únicos e 
 |---|---:|---:|
 | Pedidos únicos | 5.000 | 5.000 |
 | Soma de `valor_itens` | R$ 311.228,75 | R$ 311.228,75 |
+| Diferença financeira | | **R$ 0,00** |
 
-- Diferença financeira: R$ 0,00.
-- Tolerância permitida: R$ 0,01.
-- Resultado: reconciliação aprovada (`1 passed`).
+A tolerância definida para a diferença financeira é de R$ 0,01.
 
-## 6. Consultas SQL de validação e análises de vendas
+A reconciliação também foi confirmada durante a execução com Docker Compose.
 
-As consultas obrigatórias estão disponíveis no arquivo `consultas_validacao.sql` e foram executadas no PostgreSQL por meio do pgAdmin 4.
+## 5. Consultas SQL e análises
+
+As três consultas obrigatórias estão disponíveis em `consultas_validacao.sql` e foram executadas no pgAdmin 4.
 
 ### A — Total de vendas por mês
 
@@ -133,11 +160,7 @@ Foi utilizado `DATE_TRUNC` para agrupar os pedidos por mês e `SUM(valor_itens)`
 | Outubro | R$ 31.039,54 |
 | **Total geral** | **R$ 311.228,75** |
 
-**Teste da consulta A:**
-
-- Soma dos meses: R$ 311.228,75.
-- Soma geral da tabela: R$ 311.228,75.
-- Diferença: R$ 0,00.
+A soma dos meses corresponde ao total geral da tabela, com diferença de R$ 0,00.
 
 ### B — Quantidade de pedidos por estado
 
@@ -154,19 +177,15 @@ Consulta realizada com `INNER JOIN` entre `pedidos` e `clientes`.
 
 ### C — Pedidos divergentes
 
-A consulta seleciona os registros com `divergente = TRUE`, exibindo os valores originais, calculados e a diferença financeira.
+A consulta identifica registros com `divergente = TRUE`, exibindo os valores originais, calculados e a diferença financeira.
 
 **Resultado:** 238 pedidos divergentes.
 
-### Análises complementares — Objetivo da Verdejar
+### Análises complementares
 
-Além das três consultas obrigatórias de validação, foram realizadas análises para atender ao objetivo do projeto de disponibilizar informações de vendas por mês, estado e categoria de produto.
+Além das consultas obrigatórias, foram realizadas análises por estado e categoria de produto, conforme o objetivo do projeto.
 
-A análise mensal está apresentada na consulta A. As análises complementares por estado e categoria foram executadas no pgAdmin e conferidas com o total geral de `valor_itens`.
-
-#### D — Valor de vendas por estado
-
-Consulta realizada com `INNER JOIN` entre `pedidos` e `clientes`, agrupando os valores por estado e utilizando `SUM(p.valor_itens)`.
+**D — Valor de vendas por estado**
 
 | Estado | Total de `valor_itens` |
 |---|---:|
@@ -177,11 +196,9 @@ Consulta realizada com `INNER JOIN` entre `pedidos` e `clientes`, agrupando os v
 | MG | R$ 29.975,68 |
 | **Total geral** | **R$ 311.228,75** |
 
-**Validação:** a soma dos cinco estados corresponde ao total geral armazenado no PostgreSQL.
+A análise foi realizada com `INNER JOIN` entre pedidos e clientes, agrupando os valores por estado.
 
-#### E — Valor de vendas por categoria de produto
-
-Consulta realizada com `INNER JOIN` entre `itens_pedido` e `produtos`, agrupando os valores por categoria e calculando a soma de `quantidade × preco_unitario`.
+**E — Valor de vendas por categoria**
 
 | Categoria | Total |
 |---|---:|
@@ -190,21 +207,21 @@ Consulta realizada com `INNER JOIN` entre `itens_pedido` e `produtos`, agrupando
 | Folhas | R$ 42.159,32 |
 | **Total geral** | **R$ 311.228,75** |
 
-**Validação:** a soma das três categorias corresponde ao total geral de `valor_itens`.
+A análise considera a soma de `quantidade × preco_unitario` dos itens, agrupada por categoria.
 
 ### Considerações sobre os resultados
 
-As análises por mês, estado e categoria apresentaram o mesmo total geral de **R$ 311.228,75**, em concordância com a reconciliação da origem e do destino.
+As análises por mês, estado e categoria apresentaram o mesmo total de **R$ 311.228,75**, confirmando a consistência dos cálculos.
 
-As consultas consideram todos os status dos pedidos, inclusive cancelados e em transporte. Portanto, os valores representam o total dos itens registrados e não exclusivamente o faturamento dos pedidos entregues.
+As consultas consideram todos os status dos pedidos, inclusive cancelados e em transporte. Portanto, os valores representam o total dos itens registrados, não exclusivamente o faturamento dos pedidos entregues.
 
-Como o desafio não estabelece uma regra de negócio específica para excluir esses status, os dados foram preservados nas análises.
+Como o desafio não estabelece uma regra específica para excluir esses status, os dados foram preservados nas análises.
 
-## 7. Como executar
+## 6. Execução local — Caminho A
 
 ### Pré-requisitos
 
-Python 3, PostgreSQL local, ambiente virtual Python e dependências instaladas.
+Ter Python 3 e PostgreSQL instalados, além de um ambiente virtual Python com as dependências do projeto.
 
 ### Instalar dependências
 
@@ -214,26 +231,24 @@ Com o ambiente virtual ativo:
 python -m pip install requests pandas "psycopg[binary]" pytest
 ```
 
-### Configurar o banco
+### Configurar o PostgreSQL
 
-Criar o banco `verdejar` no PostgreSQL e executar o arquivo `insumos/schema.sql` para criar as tabelas.
+Criar o banco `verdejar` e executar `insumos/schema.sql` para criar as tabelas.
 
-Configurar na raiz do projeto um arquivo `.env`:
+Na raiz do projeto, criar um arquivo `.env`:
 
-```text
+```env
 PGHOST=localhost
 PGPORT=5432
 PGUSER=postgres
 PGPASSWORD=sua_senha_local
 ```
 
-O arquivo `.env` é lido automaticamente pelo `etl/carga.py`, por meio da função `ler_credenciais()`. Não é necessário carregar as variáveis manualmente no terminal.
-
-O arquivo `.env` está no `.gitignore` e não deve ser enviado ao GitHub.
+O arquivo é lido automaticamente por `etl/carga.py` e não deve ser enviado ao GitHub.
 
 ### Iniciar a API
 
-Na pasta `insumos`:
+Na pasta `insumos`, executar:
 
 ```bash
 python api_verdejar.py
@@ -241,76 +256,171 @@ python api_verdejar.py
 
 A API ficará disponível em `http://127.0.0.1:8000`.
 
-### Extrair e carregar os dados
+### Executar o ETL
 
-Com a API em execução, abrir outro terminal na raiz do projeto e executar:
+Em outro terminal, na raiz do projeto, criar a pasta de dados brutos, caso ainda não exista:
+
+```bash
+mkdir brutos
+```
+
+Executar a extração:
 
 ```bash
 python -m etl.extracao_api
 ```
 
-Esse comando extrai os dados das rotas `/clientes` e `/pedidos` e salva os arquivos em `brutos/`.
-
-**Importante:** a pasta `brutos/` precisa existir antes da extração.
-
-Depois, executar a carga no PostgreSQL:
+Depois, realizar a carga:
 
 ```bash
 python -m etl.carga
 ```
 
-### Visualizar o resumo do ETL
+A extração valida a quantidade esperada de **1.000 clientes e 5.100 pedidos**. Se estiver incompleta, o processo retorna erro e não deve prosseguir para a carga.
 
-Para consultar os resultados de extração, transformação, carga e reconciliação, executar na raiz do projeto:
+### Visualizar o resumo
 
 ```bash
 python -m etl.resumo_saida_etl
 ```
 
-O script `etl/resumo_saida_etl.py` apresenta no terminal:
+O resumo apresenta os registros extraídos, tratamentos realizados, quantidades armazenadas, divergências e reconciliação financeira.
 
-- Quantidade de registros extraídos de clientes e pedidos.
-- Pedidos únicos e duplicados descartados.
-- Contadores das armadilhas A1 a A6.
-- Quantidades armazenadas nas quatro tabelas do PostgreSQL.
-- Comparação dos pedidos únicos e da soma de `valor_itens` entre origem e destino.
-- Diferença financeira da reconciliação.
+Esse comando consulta os dados sem executar novamente a extração ou a carga.
 
-O comando reutiliza os arquivos preservados em `brutos/`, aplica as funções de transformação e consulta o PostgreSQL apenas para leitura, **sem executar novamente a extração ou a carga**.
-
-A quantidade original de páginas consumidas pela API não pode ser comprovada apenas pelos arquivos JSON preservados. Por isso, o script informa essa limitação em vez de apresentar um número não verificado.
-
-### Executar os testes
-
-```bash
-python -m pytest tests -v
-```
-
-Para visualizar os resultados da reconciliação:
+Para executar somente o teste de reconciliação:
 
 ```bash
 python -m pytest tests/test_reconciliacao.py -v -s
 ```
 
-As consultas do arquivo `consultas_validacao.sql` podem ser executadas no pgAdmin, conectado ao banco `verdejar`.
+As consultas de `consultas_validacao.sql` também podem ser executadas no pgAdmin, conectado ao banco `verdejar`.
+
+## 7. Execução com Docker Compose
+
+Como atividade opcional, implementei a orquestração com Docker Compose, permitindo iniciar a API, o PostgreSQL e executar o ETL com um único comando.
+
+Os arquivos utilizados são:
+
+- `Dockerfile`: prepara o ambiente Python e instala as dependências.
+- `.dockerignore`: evita copiar arquivos locais e sensíveis para a imagem.
+- `docker-compose.yml`: configura os três serviços.
+
+O PostgreSQL utiliza um volume Docker separado do banco local. O arquivo `insumos/schema.sql` cria as tabelas automaticamente na primeira inicialização de um volume vazio.
+
+### Pré-requisito
+
+Ter Docker com suporte ao Docker Compose instalado e funcionando.
+
+### Executar o projeto
+
+Na raiz do repositório:
+
+```bash
+docker compose up --build
+```
+
+Esse comando inicia o PostgreSQL e a API, aguarda os healthchecks dos serviços e executa a extração, transformação, carga e resumo do ETL.
+
+O terminal pode continuar mostrando mensagens porque a API e o PostgreSQL permanecem ativos após o término do ETL.
+
+Para verificar a situação dos contêineres, utilizar outro terminal:
+
+```bash
+docker compose ps -a
+```
+
+**Resultado validado:** o serviço `etl` apresentou `Exited (0)`, indicando que terminou normalmente.
+
+### Conferir os dados carregados
+
+```bash
+docker compose exec db psql -U verdejar -d verdejar -c "SELECT COUNT(*) FROM pedidos;"
+```
+
+Resultado esperado: **5.000 pedidos**.
+
+### Validar a idempotência
+
+Executar novamente o ETL no mesmo banco Docker:
+
+```bash
+docker compose run --rm etl
+```
+
+A segunda execução manteve as quantidades de 12 produtos, 1.000 clientes, 5.000 pedidos e 12.455 itens, sem duplicações.
+
+O contêiner temporário é removido após a execução, mas os dados do PostgreSQL permanecem armazenados no volume.
+
+### Executar os testes no Docker
+
+Como os arquivos extraídos são temporários no contêiner do ETL, a extração precisa acontecer antes dos testes:
+
+```bash
+docker compose run --rm etl sh -c "mkdir -p brutos && python -m etl.extracao_api && python -m pytest tests -v"
+```
+
+**Resultado obtido: 21 testes aprovados.**
+
+Esse comando não executa novamente a carga.
+
+### Teste de falha da API
+
+Para validar o tratamento de erros, foi simulada uma API indisponível usando:
+
+```bash
+docker compose run --rm --no-deps -e API_URL=http://127.0.0.1:9999 etl
+```
+
+A extração identificou a falha, apresentou a mensagem de extração incompleta e interrompeu o processo antes da carga.
+
+O script `etl/resumo_saida_etl.py` também foi ajustado para retornar código de erro quando ocorre uma exceção durante a geração do resumo.
+
+### Resultados no Docker
+
+| Verificação | Resultado |
+|---|---:|
+| Clientes | 1.000 |
+| Produtos | 12 |
+| Pedidos únicos | 5.000 |
+| Itens de pedido | 12.455 |
+| Pedidos duplicados descartados | 100 |
+| Pedidos divergentes | 238 |
+| Reconciliação financeira | **R$ 0,00 de diferença** |
+| Testes automatizados | **21 aprovados** |
+
+### Observações
+
+- O banco Docker é independente do PostgreSQL instalado no computador.
+- O volume preserva os dados entre as execuções.
+- O esquema SQL é aplicado automaticamente apenas na inicialização de um volume vazio.
+- O comando principal executa o ETL; os testes são executados separadamente.
+- A senha definida no Compose é fictícia e destinada exclusivamente ao ambiente local de demonstração.
+- As dependências Python não estão fixadas em versões específicas.
+- As pastas `evidencias/` e `kanban/` não são copiadas para a imagem Docker, mas continuam disponíveis no repositório GitHub.
+- A proteção contra extração incompleta vale para a execução encadeada. A carga executada isoladamente ainda pode utilizar arquivos brutos já existentes.
 
 ## 8. Evidências e documentação
 
-As evidências do projeto estão organizadas nas seguintes pastas:
+As evidências estão organizadas em:
 
-- `evidencias/evidencias.pdf`: documento consolidado com as evidências de extração, transformação, carga, testes, reconciliação e consultas SQL.
-- `kanban/`: capturas do quadro Kanban utilizado para organizar e acompanhar as etapas do desafio.
+- `evidencias/evidencias.pdf`: documento consolidado com evidências da extração, transformação, carga, testes, reconciliação e consultas SQL.
+- `kanban/`: capturas do quadro Kanban utilizado para organizar e acompanhar as atividades.
 
 Documentação complementar:
 
 - `contrato_de_dados.md`: regras e estrutura dos dados.
-- `consultas_validacao.sql`: consultas de validação e análises SQL.
-- `como_usei_ia.md`: registro do uso de inteligência artificial.
+- `consultas_validacao.sql`: consultas SQL de validação e análise.
+- `como_usei_ia.md`: registro das sugestões, decisões, correções e validações envolvendo inteligência artificial.
+
+A execução com Docker Compose também foi validada por meio dos resultados no terminal, dos testes de idempotência, da simulação de falha e dos 21 testes automatizados.
 
 ## 9. Uso de IA e versionamento
 
-O ChatGPT e o Codex foram utilizados como ferramentas de apoio para compreensão dos requisitos, desenvolvimento, testes e documentação.
+O ChatGPT e o Codex foram utilizados como ferramentas de apoio para compreensão dos requisitos, elaboração de prompts, implementação, testes e documentação.
 
-As decisões, sugestões aceitas ou modificadas, dificuldades e validações realizadas estão registradas no arquivo `como_usei_ia.md`.
+As sugestões aceitas, rejeitadas ou modificadas, além das dificuldades e validações realizadas, estão registradas em `como_usei_ia.md`.
 
-O projeto foi desenvolvido em uma branch específica, com commits organizados por etapa. A integração com a branch principal será realizada por meio de Pull Request após a revisão final.
+O projeto foi desenvolvido com commits organizados por etapa. A implementação opcional do Docker foi realizada em uma branch separada, preservando a versão anterior do projeto.
+
+A integração com a branch principal será apresentada por meio de Pull Request após a revisão final.

@@ -1,3 +1,4 @@
+
 from decimal import Decimal
 from etl.carga import (
     RAIZ,
@@ -93,6 +94,8 @@ def main():
 
     except Exception as erro:
         print("Erro ao gerar o resumo:", erro)
+        raise SystemExit(1) from erro
+
 
 if __name__ == "__main__":
     main()
