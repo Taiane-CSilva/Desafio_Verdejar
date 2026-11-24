@@ -4,7 +4,7 @@ Projeto desenvolvido para o **Bootcamp AIR Fellowship — AI-Driven Data Enginee
 
 A Verdejar é uma empresa fictícia de hortifrúti, com dados sintéticos disponibilizados por API e CSV. O projeto realiza a extração, aplica regras de qualidade e disponibiliza os dados tratados para análises de vendas.
 
-O desenvolvimento foi realizado inicialmente com PostgreSQL local (**Caminho A**) e, posteriormente, ampliado com **Docker Compose**, como atividade opcional.
+O desenvolvimento foi realizado inicialmente com PostgreSQL local (**Caminho A**) e, posteriormente, ampliado com **Docker Compose (Caminho B)**, como atividade opcional (Stretch).
 
 ## Resumo dos resultados
 
@@ -54,7 +54,14 @@ A carga foi executada duas vezes sem duplicações, tanto no ambiente local quan
 
 A extração foi implementada em `etl/extracao_api.py` e `etl/extracao_csv.py`, utilizando as rotas `/clientes` e `/pedidos` da API e o arquivo `produtos.csv`.
 
-Os arquivos JSON extraídos são armazenados em `brutos/` para processamento.
+Os arquivos JSON extraídos são armazenados em `brutos/` antes da transformação, permitindo reprocessar os dados sem consultar novamente a API. A pasta não é versionada.
+
+A extração percorre as páginas das rotas, verifica as respostas HTTP e trata falhas de conexão e páginas inexistentes.
+
+| Rota | Páginas | Registros extraídos |
+|---|---:|---:|
+| `/clientes` | 20 | 1.000 |
+| `/pedidos` | 102 | 5.100 |
 
 As transformações foram implementadas em `etl/transformacao.py`, seguindo as regras A1 a A6 do desafio.
 
@@ -69,7 +76,7 @@ As transformações foram implementadas em `etl/transformacao.py`, seguindo as r
 
 Após o tratamento, foram mantidos **5.000 pedidos únicos**.
 
-O campo `valor_total` original foi preservado, enquanto `valor_itens` foi calculado pela soma de `quantidade × preco_unitario`.
+O valor informado em `valor_total` foi preservado após a padronização monetária, enquanto `valor_itens` foi calculado pela soma de `quantidade × preco_unitario`. O campo `divergente` identifica pedidos cuja diferença absoluta entre esses valores é superior a R$ 0,01.
 
 As definições dos campos, tipos e regras estão documentadas em `contrato_de_dados.md`.
 
@@ -114,7 +121,7 @@ Os testes automatizados estão disponíveis na pasta `tests/`.
 | `test_reconciliacao.py` | 1 |
 | **Total** | **21** |
 
-Para executar os testes no ambiente local:
+Para executar os testes no ambiente local, após preparar o banco, iniciar a API e gerar os arquivos brutos conforme a seção 6:
 
 ```bash
 python -m pytest tests -v
@@ -160,7 +167,13 @@ Foi utilizado `DATE_TRUNC` para agrupar os pedidos por mês e `SUM(valor_itens)`
 | Outubro | R$ 31.039,54 |
 | **Total geral** | **R$ 311.228,75** |
 
-A soma dos meses corresponde ao total geral da tabela, com diferença de R$ 0,00.
+A soma dos meses corresponde ao total geral da tabela. O teste de consulta apresentou os seguintes resultados:
+
+| Verificação | Resultado |
+|---|---:|
+| Soma dos totais mensais | R$ 311.228,75 |
+| Soma geral de `valor_itens` | R$ 311.228,75 |
+| Diferença | **R$ 0,00** |
 
 ### B — Quantidade de pedidos por estado
 
@@ -310,7 +323,7 @@ O PostgreSQL utiliza um volume Docker separado do banco local. O arquivo `insumo
 
 ### Pré-requisito
 
-Ter Docker com suporte ao Docker Compose instalado e funcionando.
+Ter Docker com suporte ao Docker Compose instalado e funcionando. A execução deve ser feita a partir da versão do projeto que contém o `Dockerfile` e o `docker-compose.yml` (branch `teste-docker` durante o desenvolvimento).
 
 ### Executar o projeto
 
@@ -389,6 +402,56 @@ O script `etl/resumo_saida_etl.py` também foi ajustado para retornar código de
 | Reconciliação financeira | **R$ 0,00 de diferença** |
 | Testes automatizados | **21 aprovados** |
 
+### Validação em ambiente independente — Debian
+
+Para validar a portabilidade do projeto, realizei uma execução adicional em uma máquina virtual Debian, utilizando o Oracle VirtualBox, simulando a experiência de um recrutador. Baixei o ZIP da branch `teste-docker` diretamente do repositório público no GitHub, sem utilizar os arquivos do ambiente Windows de desenvolvimento.
+
+**Ambiente utilizado:**
+
+| Componente | Versão |
+|---|---|
+| Sistema operacional | Debian 13 |
+| Virtualização | Oracle VirtualBox |
+| Docker | 26.1.5 |
+| Docker Compose | 2.26.1-4 |
+
+Após instalar o Docker e o Docker Compose, executei o projeto sem alterações no código e sem instalar manualmente Python, PostgreSQL ou as dependências do ETL na máquina virtual.
+
+**Resultados obtidos:**
+
+| Validação | Resultado |
+|---|---|
+| API | Up (healthy) |
+| PostgreSQL | Up (healthy) |
+| ETL | Exited (0) |
+| Clientes | 1.000 |
+| Produtos | 12 |
+| Pedidos confirmados por consulta SQL | 5.000 |
+| Itens de pedido | 12.455 |
+| Duplicidades descartadas | 100 |
+| Pedidos divergentes | 238 |
+| Soma de `valor_itens` na origem e no destino | R$ 311.228,75 |
+| Diferença na reconciliação | R$ 0,00 |
+| Testes automatizados | 21 aprovados |
+
+A saída final do pytest, obtida após executar a extração no contêiner temporário, foi:
+
+```text
+21 passed in 0.30s
+```
+
+A validação confirmou que o projeto pode ser baixado do GitHub e executado em outro sistema operacional com Docker e Docker Compose, sem depender das configurações do ambiente original. As evidências foram registradas na pasta `evidencias/`.
+
+### Encerrar a execução
+
+Em outro terminal, na raiz do projeto, execute:
+
+```bash
+docker compose down
+```
+
+O comando remove os contêineres e a rede do projeto, preservando o volume de dados do PostgreSQL.
+
 ### Observações
 
 - O banco Docker é independente do PostgreSQL instalado no computador.
@@ -405,6 +468,7 @@ O script `etl/resumo_saida_etl.py` também foi ajustado para retornar código de
 As evidências estão organizadas em:
 
 - `evidencias/evidencias.pdf`: documento consolidado com evidências da extração, transformação, carga, testes, reconciliação e consultas SQL.
+- `evidencias/`: registros complementares da validação em máquina virtual Debian.
 - `kanban/`: capturas do quadro Kanban utilizado para organizar e acompanhar as atividades.
 
 Documentação complementar:
