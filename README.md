@@ -6,13 +6,13 @@ Projeto desenvolvido para o Desafio Final do Bootcamp AIR Fellowship — AI-Driv
 
 O objetivo é construir um processo ETL (Extração, Transformação e Carga) utilizando Python para extrair dados de uma API local e de um arquivo CSV, realizar os tratamentos necessários e armazenar os resultados no PostgreSQL.
 
-A Verdejar é uma empresa fictícia e os dados utilizados são sintéticos.
+A Verdejar é uma empresa fictícia de hortifrúti e os dados utilizados são sintéticos. O projeto prepara os dados para análises de vendas por mês, estado e categoria de produto.
 
 ## 2. Tecnologias e ambiente
 
 - **Python 3.13:** desenvolvimento do ETL.
 - **Requests:** consumo da API.
-- **Pandas e CSV:** leitura do catálogo de produtos.
+- **Pandas e módulo CSV:** leitura e processamento do catálogo de produtos.
 - **PostgreSQL:** banco de dados utilizado (Caminho A, sem Docker).
 - **Psycopg:** conexão entre Python e PostgreSQL.
 - **pgAdmin 4:** consultas e validações SQL.
@@ -111,9 +111,9 @@ O teste `tests/test_reconciliacao.py` compara a quantidade de pedidos únicos e 
 - Tolerância permitida: R$ 0,01.
 - Resultado: reconciliação aprovada (`1 passed`).
 
-## 6. Consultas SQL de validação
+## 6. Consultas SQL de validação e análises de vendas
 
-As consultas estão disponíveis no arquivo `consultas_validacao.sql` e foram executadas no PostgreSQL.
+As consultas obrigatórias estão disponíveis no arquivo `consultas_validacao.sql` e foram executadas no PostgreSQL por meio do pgAdmin 4.
 
 ### A — Total de vendas por mês
 
@@ -131,14 +131,13 @@ Foi utilizado `DATE_TRUNC` para agrupar os pedidos por mês e `SUM(valor_itens)`
 | Agosto | R$ 29.260,04 |
 | Setembro | R$ 29.909,71 |
 | Outubro | R$ 31.039,54 |
+| **Total geral** | **R$ 311.228,75** |
 
 **Teste da consulta A:**
 
 - Soma dos meses: R$ 311.228,75.
 - Soma geral da tabela: R$ 311.228,75.
 - Diferença: R$ 0,00.
-
-O resultado inclui todos os status dos pedidos, inclusive cancelados e em transporte, para validar os valores armazenados. Portanto, não representa apenas o faturamento dos pedidos entregues.
 
 ### B — Quantidade de pedidos por estado
 
@@ -158,6 +157,48 @@ Consulta realizada com `INNER JOIN` entre `pedidos` e `clientes`.
 A consulta seleciona os registros com `divergente = TRUE`, exibindo os valores originais, calculados e a diferença financeira.
 
 **Resultado:** 238 pedidos divergentes.
+
+### Análises complementares — Objetivo da Verdejar
+
+Além das três consultas obrigatórias de validação, foram realizadas análises para atender ao objetivo do projeto de disponibilizar informações de vendas por mês, estado e categoria de produto.
+
+A análise mensal está apresentada na consulta A. As análises complementares por estado e categoria foram executadas no pgAdmin e conferidas com o total geral de `valor_itens`.
+
+#### D — Valor de vendas por estado
+
+Consulta realizada com `INNER JOIN` entre `pedidos` e `clientes`, agrupando os valores por estado e utilizando `SUM(p.valor_itens)`.
+
+| Estado | Total de `valor_itens` |
+|---|---:|
+| RS | R$ 96.280,95 |
+| SC | R$ 71.238,58 |
+| PR | R$ 59.426,74 |
+| SP | R$ 54.306,80 |
+| MG | R$ 29.975,68 |
+| **Total geral** | **R$ 311.228,75** |
+
+**Validação:** a soma dos cinco estados corresponde ao total geral armazenado no PostgreSQL.
+
+#### E — Valor de vendas por categoria de produto
+
+Consulta realizada com `INNER JOIN` entre `itens_pedido` e `produtos`, agrupando os valores por categoria e calculando a soma de `quantidade × preco_unitario`.
+
+| Categoria | Total |
+|---|---:|
+| Frutas | R$ 175.161,36 |
+| Legumes | R$ 93.908,07 |
+| Folhas | R$ 42.159,32 |
+| **Total geral** | **R$ 311.228,75** |
+
+**Validação:** a soma das três categorias corresponde ao total geral de `valor_itens`.
+
+### Considerações sobre os resultados
+
+As análises por mês, estado e categoria apresentaram o mesmo total geral de **R$ 311.228,75**, em concordância com a reconciliação da origem e do destino.
+
+As consultas consideram todos os status dos pedidos, inclusive cancelados e em transporte. Portanto, os valores representam o total dos itens registrados e não exclusivamente o faturamento dos pedidos entregues.
+
+Como o desafio não estabelece uma regra de negócio específica para excluir esses status, os dados foram preservados nas análises.
 
 ## 7. Como executar
 
@@ -218,6 +259,27 @@ Depois, executar a carga no PostgreSQL:
 python -m etl.carga
 ```
 
+### Visualizar o resumo do ETL
+
+Para consultar os resultados de extração, transformação, carga e reconciliação, executar na raiz do projeto:
+
+```bash
+python -m etl.resumo_saida_etl
+```
+
+O script `etl/resumo_saida_etl.py` apresenta no terminal:
+
+- Quantidade de registros extraídos de clientes e pedidos.
+- Pedidos únicos e duplicados descartados.
+- Contadores das armadilhas A1 a A6.
+- Quantidades armazenadas nas quatro tabelas do PostgreSQL.
+- Comparação dos pedidos únicos e da soma de `valor_itens` entre origem e destino.
+- Diferença financeira da reconciliação.
+
+O comando reutiliza os arquivos preservados em `brutos/`, aplica as funções de transformação e consulta o PostgreSQL apenas para leitura, **sem executar novamente a extração ou a carga**.
+
+A quantidade original de páginas consumidas pela API não pode ser comprovada apenas pelos arquivos JSON preservados. Por isso, o script informa essa limitação em vez de apresentar um número não verificado.
+
 ### Executar os testes
 
 ```bash
@@ -234,17 +296,15 @@ As consultas do arquivo `consultas_validacao.sql` podem ser executadas no pgAdmi
 
 ## 8. Evidências e documentação
 
-As evidências estão organizadas na pasta `evidencias/`:
+As evidências do projeto estão organizadas nas seguintes pastas:
 
-- `evidencias_extracao.pdf`
-- `evidencias_transformacao.pdf`
-- `evidencias_carga.pdf`
-- `evidencias_testes_reconciliacao.pdf`
+- `evidencias/evidencias.pdf`: documento consolidado com as evidências de extração, transformação, carga, testes, reconciliação e consultas SQL.
+- `kanban/`: capturas do quadro Kanban utilizado para organizar e acompanhar as etapas do desafio.
 
 Documentação complementar:
 
 - `contrato_de_dados.md`: regras e estrutura dos dados.
-- `consultas_validacao.sql`: consultas de validação.
+- `consultas_validacao.sql`: consultas de validação e análises SQL.
 - `como_usei_ia.md`: registro do uso de inteligência artificial.
 
 ## 9. Uso de IA e versionamento
