@@ -9,3 +9,6 @@ brutos/
 
 # Ambiente virtual
 .venv/
+
+# Arquivos temporários do pystest
+.pytest_cache/
